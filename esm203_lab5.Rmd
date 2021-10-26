@@ -47,8 +47,86 @@ In-line code referencing to stored objects!
 
 Use a single backtick on either side of a lowercase r to create an in-line bit of code.
 
-Mean pika mass at Paiute Pass is `r round(pika_mean, 1)` g $\pm$ `r round(pika_sd, 1)` g (mean $\pm$ 1 standard deviation, n = `r length(pika_mass)`) with a 95% confidence interval of [`r pika_ci$conf.int[1]`, `r pika_ci$conf.int[2]`] g.
+Mean pika mass at Paiute Pass is `r round(pika_mean, 1)` g $\pm$ `r round(pika_sd, 1)` g (mean $\pm$ 1 standard deviation, n = `r length(pika_mass)`) with a 95% confidence interval of [`r round(pika_ci$conf.int[1], 1)`, `r round(pika_ci$conf.int[2], 1)`] g.
 
 to call out data, go to console and use $. example: pika_ci$conf.int to get the confidence interval.
 
 indexing: to pull individual values, use brackets. example: pika_mass[2] to pull the second value of the masses. 
+
+for significant figures, use round() function and then do ", the amount of sig figs you want" example: round(pika_mass, 2). 
+
+# Two-sample t-test
+
+Use a two-sample t-test to test the null hypothesis that samples were drawn from populations with the same mean (difference in means = 0).
+
+- H0: Means difference = 0
+- HA: Means difference is NOT = 0
+
+This is a two-sided t-test because no directionality is implied. 
+
+## Example 1
+```{r}
+oak_trees <- c(29, 19, 22, 30, 35, 16, 20, 7)
+  
+pine_trees <- c(48, 32, 41, 40, 56, 70, 30, 19, 20)
+```
+
+Is there a significance difference in mean heights for oak and pine trees?
+
+```{r}
+trees_t <- t.test(oak_trees, pine_trees)
+```
+
+The p-value of `r trees_t$p.value` means that there is `r (trees_t$p.value) * 100`% chance of finding sample means *at least as different as those I found* by random chance if they were drawn from populations with the same mean height. This is the tail ends on the distribution code. In the t-distribution, we are seeing how far away it is from zero but we are asking a two-sided question, so our p-value gives use that. 
+
+## Example 2
+
+Using the 'mpg' dataset to compare city gas mileage for SUVs and compact cars.
+unique() function allows you to see the different classes in your data set
+
+```{r}
+# Create a subset called compact_suv that only contains observations where the class is suv OR compact
+# filter allows you to select a column 
+# class in c() is selecting suv and compact only
+compact_suv <- mpg %>%
+  filter(class %in% c("suv", "compact"))
+  
+```
+
+
+```{r}
+ggplot(data = compact_suv, aes(x = cty)) +
+  geom_histogram(bins = 12) + # bins = # reduces the amount of bins
+  facet_wrap(~class) # this divides your histogram by the different classes
+
+ggplot(data = compact_suv, aes(sample = cty)) +
+  geom_qq() + # q-q plot
+  facet_wrap(~class)
+```
+
+Summary table 
+```{r}
+car_stats <- compact_suv %>%
+  group_by(class) %>%
+  summarize(mean_city = mean(cty),
+            sd_city = round(sd(cty), 1),
+            sample_size = n())
+
+car_stats
+```
+Is there a significant difference between compact and suv cars?
+```{r}
+compact_sample <- compact_suv %>%
+  filter(class == "compact") %>%
+  pull(cty) #pulls vectors
+
+suv_sample <- compact_suv %>%
+  filter(class == "suv") %>%
+  pull(cty)
+
+cars_t <- t.test(compact_sample, suv_sample)
+```
+
+stats speak: reject the null hypothesis of equal mean city gas mileages (reject null)
+
+Mean gas mileage for compact cars and SUVs differs significantly (t(`r cars_t$parameters`) = `r cars_t$statistic`, p < 0.001, $\alpha$ = 0.05). 
